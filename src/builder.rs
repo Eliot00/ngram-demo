@@ -6,8 +6,9 @@ use crate::{
     rank_array::EliasFanoRankArray, trie_array::EliasFanoTrieArray, vocabulary::Vocabulary,
 };
 
+#[derive(Default)]
 pub struct TrieCountLmBuilder {
-    loaders: Vec<(String, u32)>,
+    loaders: Vec<Vec<(String, usize)>>,
     vocab: Vocabulary,
     arrays: Vec<EliasFanoTrieArray>,
     count_ranks: Vec<EliasFanoRankArray>,
@@ -15,10 +16,30 @@ pub struct TrieCountLmBuilder {
 }
 
 impl TrieCountLmBuilder {
-    pub fn new(loaders: Vec<(String, u32)>) -> Self {
+    pub fn new(loaders: Vec<Vec<(String, usize)>>) -> Self {
         Self {
             loaders,
+            ..Default::default()
         }
+    }
+
+    fn build_counts(&mut self) {
+        for loader in &self.loaders {
+            for record in loader {
+                self.counts_builder.eat_value(record.1);
+            }
+            self.counts_builder.build_sequence();
+        }
+    }
+
+    fn build_vocabulary(&mut self) {
+        let records = self.loaders[0].clone();
+        self.vocab = Vocabulary::new(
+            &records
+                .iter()
+                .map(|(s, _)| s.as_str())
+                .collect::<Vec<&str>>(),
+        );
     }
 }
 
